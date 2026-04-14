@@ -37,16 +37,43 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true);
   const supabase = useMemo(() => createClient(), []);
 
+  const ensureProfile = useCallback(async () => {
+    try {
+      await fetch("/api/profiles/ensure", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+      });
+    } catch {
+      // Ignore network failures here; caller will handle missing profile state.
+    }
+  }, []);
+
   const fetchProfile = useCallback(
     async (userId: string) => {
       const { data } = await (supabase
         .from("profiles") as any)
         .select("*")
         .eq("id", userId)
-        .single();
-      setProfile(data as Profile);
+        .maybeSingle();
+
+      if (data) {
+        setProfile(data as Profile);
+        return;
+      }
+
+      await ensureProfile();
+
+      const { data: ensuredProfile } = await (supabase
+        .from("profiles") as any)
+        .select("*")
+        .eq("id", userId)
+        .maybeSingle();
+
+      setProfile((ensuredProfile as Profile) ?? null);
     },
-    [supabase]
+    [supabase, ensureProfile]
   );
 
   const refreshProfile = useCallback(async () => {
@@ -58,15 +85,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     // Get initial session
     const getInitialSession = async () => {
-      const {
-        data: { session },
-      } = await supabase.auth.getSession();
+      try {
+        const {
+          data: { session },
+        } = await supabase.auth.getSession();
 
-      if (session?.user) {
-        setUser(session.user);
-        await fetchProfile(session.user.id);
+        if (session?.user) {
+          setUser(session.user);
+          await fetchProfile(session.user.id);
+        } else {
+          setUser(null);
+          setProfile(null);
+        }
+      } finally {
+        setLoading(false);
       }
-      setLoading(false);
     };
 
     getInitialSession();
@@ -75,6 +108,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange(async (event, session) => {
+      setLoading(true);
+
       if (session?.user) {
         setUser(session.user);
         await fetchProfile(session.user.id);
@@ -82,6 +117,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setUser(null);
         setProfile(null);
       }
+
       setLoading(false);
     });
 
@@ -89,12 +125,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [supabase, fetchProfile]);
 
   const signOut = async () => {
-    const { error } = await supabase.auth.signOut();
-    if (error) {
-      throw error;
+    try {
+      await supabase.auth.signOut({ scope: "local" });
+    } finally {
+      setUser(null);
+      setProfile(null);
+      setLoading(false);
     }
-    setUser(null);
-    setProfile(null);
   };
 
   return (
