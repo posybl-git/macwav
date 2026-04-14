@@ -19,10 +19,18 @@ export default function SignupPage() {
   const [loading, setLoading] = useState(false);
   const [checkEmail, setCheckEmail] = useState(false);
 
+  const getAppUrl = () => {
+    if (typeof window !== "undefined" && window.location?.origin) {
+      return window.location.origin;
+    }
+
+    return process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
+  };
+
   const handleSignup = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
-    const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
+    const appUrl = getAppUrl();
 
     // Validate passwords match
     if (password !== confirmPassword) {

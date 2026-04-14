@@ -11,6 +11,14 @@ export default function ForgotPasswordPage() {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
+  const getAppUrl = () => {
+    if (typeof window !== "undefined" && window.location?.origin) {
+      return window.location.origin;
+    }
+
+    return process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
+  };
+
   function getResetErrorMessage(message: string) {
     if (message.toLowerCase().includes("rate limit")) {
       return "Too many reset requests. Please wait 60 seconds and try again.";
@@ -25,10 +33,11 @@ export default function ForgotPasswordPage() {
 
     try {
       const supabase = createClient();
+      const appUrl = getAppUrl();
       const { error: resetError } = await supabase.auth.resetPasswordForEmail(
         email,
         {
-          redirectTo: "http://localhost:3000/auth/reset-password",
+          redirectTo: `${appUrl}/auth/reset-password`,
         }
       );
 
