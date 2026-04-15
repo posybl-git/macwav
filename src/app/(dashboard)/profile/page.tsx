@@ -3,26 +3,57 @@
 import { useEffect, useState } from "react";
 import { User, Mail, Save, CalendarDays, Shield, Loader2 } from "lucide-react";
 import { useAuth } from "@/components/providers/auth-provider";
-import { createClient } from "@/lib/supabase/client";
-import type { Database } from "@/types/supabase";
 
 export default function ProfilePage() {
   const { user, profile, refreshProfile, loading: authLoading } = useAuth();
-  const [firstName, setFirstName] = useState(profile?.first_name ?? "");
-  const [lastName, setLastName] = useState(profile?.last_name ?? "");
+  const fallbackProfile = user
+    ? {
+        id: user.id,
+        email: user.email ?? "",
+        first_name:
+          typeof user.user_metadata?.first_name === "string"
+            ? user.user_metadata.first_name
+            : "",
+        last_name:
+          typeof user.user_metadata?.last_name === "string"
+            ? user.user_metadata.last_name
+            : "",
+        role: "artist",
+        is_priority: false,
+        credit_balance: 0,
+        created_at: user.created_at ?? new Date().toISOString(),
+        updated_at: user.updated_at ?? new Date().toISOString(),
+      }
+    : null;
+
+  const effectiveProfile = profile ?? fallbackProfile;
+
+  const [firstName, setFirstName] = useState(effectiveProfile?.first_name ?? "");
+  const [lastName, setLastName] = useState(effectiveProfile?.last_name ?? "");
   const [saving, setSaving] = useState(false);
   const [success, setSuccess] = useState(false);
   const [error, setError] = useState("");
   const [retryingProfile, setRetryingProfile] = useState(false);
   const [hasRetriedProfile, setHasRetriedProfile] = useState(false);
 
-  // Sync form state when profile loads
+  // Derive display name — fall back to email when name is empty
+  const fullName = [effectiveProfile?.first_name, effectiveProfile?.last_name]
+    .filter(Boolean)
+    .join(" ");
+  const displayName = fullName || effectiveProfile?.email || user?.email || "User";
+  const displayEmail = effectiveProfile?.email || user?.email || "";
+
+  // Sync form state when profile data actually changes (use stable primitives, not object ref)
+  const profileFirstName = profile?.first_name ?? null;
+  const profileLastName = profile?.last_name ?? null;
   useEffect(() => {
-    if (profile) {
-      setFirstName(profile.first_name);
-      setLastName(profile.last_name);
+    if (profileFirstName !== null) {
+      setFirstName(profileFirstName);
     }
-  }, [profile]);
+    if (profileLastName !== null) {
+      setLastName(profileLastName);
+    }
+  }, [profileFirstName, profileLastName]);
 
   useEffect(() => {
     if (!authLoading && user && !profile && !hasRetriedProfile) {
@@ -32,6 +63,8 @@ export default function ProfilePage() {
     }
   }, [authLoading, user, profile, hasRetriedProfile, refreshProfile]);
 
+
+
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
@@ -39,18 +72,15 @@ export default function ProfilePage() {
     setSaving(true);
 
     try {
-      const supabase = createClient();
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const { error: updateError } = await (supabase
-        .from("profiles") as any)
-        .update({
-          first_name: firstName,
-          last_name: lastName,
-        })
-        .eq("id", profile!.id);
+      const res = await fetch("/api/profiles/update", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ first_name: firstName, last_name: lastName }),
+      });
 
-      if (updateError) {
-        setError(updateError.message);
+      if (!res.ok) {
+        const { error: msg } = await res.json();
+        setError(msg || "Failed to update profile.");
       } else {
         setSuccess(true);
         await refreshProfile();
@@ -71,7 +101,7 @@ export default function ProfilePage() {
     );
   }
 
-  if (!profile) {
+  if (!effectiveProfile) {
     return (
       <div>
         <h1 className="text-3xl font-bold text-foreground mb-2">Profile</h1>
@@ -103,17 +133,26 @@ export default function ProfilePage() {
       </p>
 
       <div className="rounded-xl border border-border bg-card p-6 max-w-2xl">
-        {/* Avatar + Name */}
+        {/* Avatar + Name + Email */}
         <div className="flex items-center gap-4 mb-8">
           <div className="w-16 h-16 rounded-full bg-primary/20 border-2 border-primary flex items-center justify-center">
             <User className="w-8 h-8 text-primary" />
           </div>
           <div>
             <p className="text-xl font-bold text-foreground">
-              {profile.first_name} {profile.last_name}
+              {displayName}
             </p>
-            <p className="text-sm text-muted-foreground capitalize">
-              {profile.role}
+            {/* Always show email when a name is available; when only email shows as name, show role instead */}
+            {fullName ? (
+              <div className="flex items-center gap-1.5 mt-0.5">
+                <Mail className="w-3.5 h-3.5 text-muted-foreground" />
+                <p className="text-sm text-muted-foreground">
+                  {displayEmail}
+                </p>
+              </div>
+            ) : null}
+            <p className="text-sm text-muted-foreground capitalize mt-0.5">
+              {effectiveProfile.role}
             </p>
           </div>
         </div>
@@ -145,6 +184,7 @@ export default function ProfilePage() {
                 type="text"
                 value={firstName}
                 onChange={(e) => setFirstName(e.target.value)}
+                placeholder="Enter your first name"
                 className="w-full px-4 py-3 rounded-lg bg-input border border-border text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-all"
               />
             </div>
@@ -160,6 +200,7 @@ export default function ProfilePage() {
                 type="text"
                 value={lastName}
                 onChange={(e) => setLastName(e.target.value)}
+                placeholder="Enter your last name"
                 className="w-full px-4 py-3 rounded-lg bg-input border border-border text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-all"
               />
             </div>
@@ -178,9 +219,9 @@ export default function ProfilePage() {
               <input
                 id="profile-email"
                 type="email"
-                value={profile.email}
+                value={effectiveProfile.email}
                 disabled
-                className="w-full pl-11 pr-4 py-3 rounded-lg bg-input border border-border text-muted-foreground cursor-not-allowed"
+                className="w-full pl-11 pr-4 py-3 rounded-lg bg-muted border border-border text-muted-foreground cursor-not-allowed"
               />
             </div>
             <p className="text-xs text-muted-foreground">
@@ -199,7 +240,7 @@ export default function ProfilePage() {
                 </p>
               </div>
               <p className="text-foreground font-medium capitalize">
-                {profile.role}
+                {effectiveProfile.role}
               </p>
             </div>
 
@@ -212,7 +253,7 @@ export default function ProfilePage() {
                 </p>
               </div>
               <p className="text-foreground font-medium">
-                {new Date(profile.created_at).toLocaleDateString("en-US", {
+                {new Date(effectiveProfile.created_at).toLocaleDateString("en-US", {
                   month: "short",
                   day: "numeric",
                   year: "numeric",
@@ -237,6 +278,7 @@ export default function ProfilePage() {
           {/* Save Button */}
           <button
             type="submit"
+            id="profile-save-btn"
             disabled={saving}
             className="inline-flex items-center gap-2 px-6 py-3 rounded-lg bg-primary text-primary-foreground font-semibold hover:bg-primary/90 hover:shadow-[0_0_24px_rgba(144,90,246,0.4)] transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
           >

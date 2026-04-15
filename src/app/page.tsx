@@ -21,7 +21,7 @@ export default function LoginPage() {
 
     try {
       const supabase = createClient();
-      const { error: authError } = await supabase.auth.signInWithPassword({
+      const { data: signInData, error: authError } = await supabase.auth.signInWithPassword({
         email,
         password,
       });
@@ -32,22 +32,33 @@ export default function LoginPage() {
         return;
       }
 
-      // Fetch user profile to determine role-based redirect
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
+      const session = signInData.session;
 
-      if (user) {
-        const { data: profile } = await (supabase
-          .from("profiles") as any)
-          .select("role")
-          .eq("id", user.id)
-          .single();
+      if (session) {
+        await supabase.auth.setSession({
+          access_token: session.access_token,
+          refresh_token: session.refresh_token,
+        });
+      }
 
-        if (profile?.role === "admin") {
-          router.push("/admin");
+      // Use the signed-in user immediately after session is applied
+      const signedInUser = session?.user ?? signInData.user ?? null;
+
+      if (signedInUser) {
+        const roleResponse = await fetch("/api/auth/role", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ userId: signedInUser.id }),
+        });
+
+        const { role } = await roleResponse.json().catch(() => ({ role: null }));
+
+        if (role === "admin") {
+          router.replace("/admin");
         } else {
-          router.push("/dashboard");
+          router.replace("/dashboard");
         }
         router.refresh();
       }

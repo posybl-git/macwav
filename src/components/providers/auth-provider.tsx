@@ -51,29 +51,28 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const fetchProfile = useCallback(
-    async (userId: string) => {
-      const { data } = await (supabase
-        .from("profiles") as any)
-        .select("*")
-        .eq("id", userId)
-        .maybeSingle();
-
-      if (data) {
-        setProfile(data as Profile);
-        return;
+    async (_userId: string) => {
+      try {
+        const res = await fetch("/api/profiles/me");
+        if (!res.ok) {
+          // Profile doesn't exist yet — ensure it, then retry
+          await ensureProfile();
+          const retryRes = await fetch("/api/profiles/me");
+          if (retryRes.ok) {
+            const { profile: p } = await retryRes.json();
+            setProfile(p ?? null);
+          } else {
+            setProfile(null);
+          }
+          return;
+        }
+        const { profile: p } = await res.json();
+        setProfile(p ?? null);
+      } catch {
+        setProfile(null);
       }
-
-      await ensureProfile();
-
-      const { data: ensuredProfile } = await (supabase
-        .from("profiles") as any)
-        .select("*")
-        .eq("id", userId)
-        .maybeSingle();
-
-      setProfile((ensuredProfile as Profile) ?? null);
     },
-    [supabase, ensureProfile]
+    [ensureProfile]
   );
 
   const refreshProfile = useCallback(async () => {
@@ -104,11 +103,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     getInitialSession();
 
-    // Listen for auth changes
+    // Listen for auth changes — only block UI for actual sign-in/sign-out
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange(async (event, session) => {
-      setLoading(true);
+      // Only show full-page loading for real auth transitions
+      const isFullAuthEvent =
+        event === "SIGNED_IN" || event === "SIGNED_OUT";
+
+      if (isFullAuthEvent) {
+        setLoading(true);
+      }
 
       if (session?.user) {
         setUser(session.user);
@@ -118,7 +123,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setProfile(null);
       }
 
-      setLoading(false);
+      if (isFullAuthEvent) {
+        setLoading(false);
+      }
     });
 
     return () => subscription.unsubscribe();

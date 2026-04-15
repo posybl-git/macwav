@@ -1,5 +1,6 @@
 import { createServerClient } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
+import { createAdminClient } from '@/lib/supabase/admin'
 
 export async function updateSession(request: NextRequest) {
   let supabaseResponse = NextResponse.next({
@@ -37,12 +38,30 @@ export async function updateSession(request: NextRequest) {
     data: { user },
   } = await supabase.auth.getUser()
 
+  const admin = createAdminClient()
+
+  const getRole = async (userId: string) => {
+    const { data } = await (admin.from('profiles') as any)
+      .select('role')
+      .eq('id', userId)
+      .maybeSingle()
+
+    return data?.role ?? null
+  }
+
   const path = request.nextUrl.pathname
 
   // Define route groups
   const isAuthRoute = path === '/' || path.startsWith('/auth')
   const isAdminRoute = path.startsWith('/admin')
   const isProtectedRoute =
+    path.startsWith('/dashboard') ||
+    path.startsWith('/songs') ||
+    path.startsWith('/credits') ||
+    path.startsWith('/schedule') ||
+    path.startsWith('/profile')
+
+  const isArtistRoute =
     path.startsWith('/dashboard') ||
     path.startsWith('/songs') ||
     path.startsWith('/credits') ||
@@ -58,15 +77,10 @@ export async function updateSession(request: NextRequest) {
 
   // Authenticated user on login/signup pages → redirect to dashboard
   if (user && isAuthRoute) {
-    // Check role for proper redirect
-    const { data: profile } = await (supabase
-      .from('profiles') as any)
-      .select('role')
-      .eq('id', user.id)
-      .single()
+    const role = await getRole(user.id)
 
     const url = request.nextUrl.clone()
-    if (profile?.role === 'admin') {
+    if (role === 'admin') {
       url.pathname = '/admin'
     } else {
       url.pathname = '/dashboard'
@@ -74,15 +88,21 @@ export async function updateSession(request: NextRequest) {
     return NextResponse.redirect(url)
   }
 
+  if (user && isArtistRoute) {
+    const role = await getRole(user.id)
+
+    if (role === 'admin') {
+      const url = request.nextUrl.clone()
+      url.pathname = '/admin'
+      return NextResponse.redirect(url)
+    }
+  }
+
   // Artist trying to access admin routes
   if (user && isAdminRoute) {
-    const { data: profile } = await (supabase
-      .from('profiles') as any)
-      .select('role')
-      .eq('id', user.id)
-      .single()
+    const role = await getRole(user.id)
 
-    if (profile?.role !== 'admin') {
+    if (role !== 'admin') {
       const url = request.nextUrl.clone()
       url.pathname = '/dashboard'
       return NextResponse.redirect(url)
