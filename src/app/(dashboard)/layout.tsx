@@ -17,6 +17,7 @@ import {
 } from "lucide-react";
 import { useState } from "react";
 import { useAuth } from "@/components/providers/auth-provider";
+import { Logo } from "@/components/brand/logo";
 
 const navItems = [
   { label: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
@@ -67,9 +68,7 @@ export default function DashboardLayout({
       <aside className="hidden lg:flex lg:flex-col lg:w-64 border-r border-border bg-surface">
         {/* Logo */}
         <div className="px-6 py-6">
-          <Link href="/dashboard" className="text-2xl font-bold text-primary tracking-tight">
-            macwav
-          </Link>
+          <Logo href="/dashboard" className="w-[170px] max-w-full" />
         </div>
 
         {/* Navigation */}
@@ -122,12 +121,7 @@ export default function DashboardLayout({
           />
           <aside className="absolute left-0 top-0 bottom-0 w-64 bg-surface border-r border-border animate-in slide-in-from-left duration-250">
             <div className="flex items-center justify-between px-6 py-6">
-              <Link
-                href="/dashboard"
-                className="text-2xl font-bold text-primary tracking-tight"
-              >
-                macwav
-              </Link>
+              <Logo href="/dashboard" className="w-[170px] max-w-full" />
               <button
                 onClick={() => setMobileMenuOpen(false)}
                 className="text-muted-foreground hover:text-foreground"

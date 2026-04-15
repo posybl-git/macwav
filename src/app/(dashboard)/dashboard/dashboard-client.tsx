@@ -83,7 +83,7 @@ export default function DashboardClient() {
             {(profile?.credit_balance ?? 0).toLocaleString()}
           </p>
           <Link
-            href="/credits"
+            href="/credits/purchase"
             className="inline-block mt-2 text-sm text-accent hover:text-accent/80 transition-colors"
           >
             Buy more →

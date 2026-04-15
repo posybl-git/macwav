@@ -3,8 +3,9 @@
 import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Eye, EyeOff, Music, Loader2 } from "lucide-react";
+import { Eye, EyeOff, Loader2 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
+import { Logo } from "@/components/brand/logo";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -80,14 +81,7 @@ export default function LoginPage() {
 
         <div className="relative z-10 text-center px-12">
           {/* Logo */}
-          <div className="flex items-center justify-center gap-3 mb-6">
-            <div className="w-12 h-12 bg-primary rounded-xl flex items-center justify-center">
-              <Music className="w-7 h-7 text-white" />
-            </div>
-            <span className="text-4xl font-bold text-primary tracking-tight">
-              macwav
-            </span>
-          </div>
+          <Logo className="mx-auto mb-6 w-[260px] max-w-full" />
 
           {/* Tagline */}
           <p className="text-muted-foreground text-lg leading-relaxed max-w-sm mx-auto mb-12">
@@ -117,12 +111,9 @@ export default function LoginPage() {
       <div className="w-full lg:w-1/2 flex items-center justify-center p-8 bg-background">
         <div className="w-full max-w-md">
           {/* Mobile logo */}
-          <div className="flex items-center justify-center gap-3 mb-8 lg:hidden">
-            <div className="w-10 h-10 bg-primary rounded-xl flex items-center justify-center">
-              <Music className="w-6 h-6 text-white" />
-            </div>
-            <span className="text-3xl font-bold text-primary">macwav</span>
-          </div>
+          <Logo
+            className="mx-auto mb-8 w-[220px] max-w-full lg:hidden"
+          />
 
           <h1 className="text-3xl font-bold text-foreground mb-2">
             Welcome back
