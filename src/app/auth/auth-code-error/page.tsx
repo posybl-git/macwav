@@ -1,18 +1,14 @@
 "use client";
 
 import Link from "next/link";
-import { Music, ArrowLeft } from "lucide-react";
+import { ArrowLeft } from "lucide-react";
+import { Logo } from "@/components/brand/logo";
 
 export default function AuthCodeErrorPage() {
   return (
     <div className="min-h-screen flex items-center justify-center bg-background p-8">
       <div className="w-full max-w-md text-center">
-        <div className="flex items-center justify-center gap-3 mb-8">
-          <div className="w-10 h-10 bg-primary rounded-xl flex items-center justify-center">
-            <Music className="w-6 h-6 text-white" />
-          </div>
-          <span className="text-3xl font-bold text-primary">macwav</span>
-        </div>
+        <Logo className="mx-auto mb-8 w-[220px] max-w-full" />
 
         <div className="w-16 h-16 bg-destructive/20 rounded-full flex items-center justify-center mx-auto mb-6">
           <svg

@@ -1,10 +1,11 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Eye, EyeOff, Music, Loader2 } from "lucide-react";
+import { Eye, EyeOff, Loader2 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
+import { Logo } from "@/components/brand/logo";
 
 export default function ResetPasswordPage() {
   const router = useRouter();
@@ -15,6 +16,50 @@ export default function ResetPasswordPage() {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
+  const [sessionReady, setSessionReady] = useState(false);
+
+  useEffect(() => {
+    const establishSession = async () => {
+      const supabase = createClient();
+      const { data: sessionData } = await supabase.auth.getSession();
+
+      if (sessionData.session) {
+        setSessionReady(true);
+        return;
+      }
+
+      const url = new URL(window.location.href);
+      const code = url.searchParams.get("code");
+      const tokenHash = url.searchParams.get("token_hash");
+      const type = url.searchParams.get("type");
+
+      if (code) {
+        const { error } = await supabase.auth.exchangeCodeForSession(code);
+        if (!error) {
+          window.history.replaceState({}, document.title, url.pathname);
+          setSessionReady(true);
+          return;
+        }
+      }
+
+      if (tokenHash && type) {
+        const { error } = await supabase.auth.verifyOtp({
+          type: type as "email" | "recovery" | "signup" | "invite" | "magiclink",
+          token_hash: tokenHash,
+        });
+
+        if (!error) {
+          window.history.replaceState({}, document.title, url.pathname);
+          setSessionReady(true);
+          return;
+        }
+      }
+
+      setSessionReady(false);
+    };
+
+    establishSession();
+  }, []);
 
   const handleResetPassword = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -34,6 +79,14 @@ export default function ResetPasswordPage() {
 
     try {
       const supabase = createClient();
+      const { data: sessionData } = await supabase.auth.getSession();
+
+      if (!sessionData.session) {
+        setError("Auth session missing. Please open the reset link again.");
+        setLoading(false);
+        return;
+      }
+
       const { error: updateError } = await supabase.auth.updateUser({
         password,
       });
@@ -64,14 +117,7 @@ export default function ResetPasswordPage() {
         <div className="absolute bottom-1/4 right-1/4 w-64 h-64 bg-accent/10 rounded-full blur-[96px]" />
 
         <div className="relative z-10 text-center px-12">
-          <div className="flex items-center justify-center gap-3 mb-6">
-            <div className="w-12 h-12 bg-primary rounded-xl flex items-center justify-center">
-              <Music className="w-7 h-7 text-white" />
-            </div>
-            <span className="text-4xl font-bold text-primary tracking-tight">
-              macwav
-            </span>
-          </div>
+          <Logo className="mx-auto mb-6 w-[260px] max-w-full" />
 
           <p className="text-muted-foreground text-lg leading-relaxed max-w-sm mx-auto mb-12">
             Your artist development platform. Track songs, manage credits, and
@@ -99,14 +145,18 @@ export default function ResetPasswordPage() {
       <div className="w-full lg:w-1/2 flex items-center justify-center p-8 bg-background">
         <div className="w-full max-w-md">
           {/* Mobile logo */}
-          <div className="flex items-center justify-center gap-3 mb-8 lg:hidden">
-            <div className="w-10 h-10 bg-primary rounded-xl flex items-center justify-center">
-              <Music className="w-6 h-6 text-white" />
-            </div>
-            <span className="text-3xl font-bold text-primary">macwav</span>
-          </div>
+          <Logo
+            className="mx-auto mb-8 w-[220px] max-w-full lg:hidden"
+          />
 
-          {!success ? (
+          {!sessionReady ? (
+            <div className="text-center">
+              <div className="mb-6 p-4 rounded-lg bg-muted/30 border border-border text-muted-foreground text-sm">
+                Verifying reset link...
+              </div>
+              <Loader2 className="w-6 h-6 animate-spin text-primary mx-auto" />
+            </div>
+          ) : !success ? (
             <>
               <h1 className="text-3xl font-bold text-foreground mb-2">
                 Set New Password

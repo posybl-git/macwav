@@ -16,6 +16,7 @@ import {
 } from "lucide-react";
 import { useState } from "react";
 import { useAuth } from "@/components/providers/auth-provider";
+import { Logo } from "@/components/brand/logo";
 
 const adminNavItems = [
   { label: "Overview", href: "/admin", icon: LayoutDashboard },
@@ -65,9 +66,7 @@ export default function AdminLayout({
       <aside className="hidden lg:flex lg:flex-col lg:w-64 border-r border-border bg-surface">
         {/* Logo */}
         <div className="px-6 py-6">
-          <Link href="/admin" className="text-2xl font-bold text-primary tracking-tight">
-            macwav
-          </Link>
+          <Logo href="/admin" className="w-[170px] max-w-full" />
           <p className="text-xs text-muted-foreground mt-1 uppercase tracking-wider font-semibold">
             Admin Panel
           </p>
@@ -124,12 +123,7 @@ export default function AdminLayout({
           <aside className="absolute left-0 top-0 bottom-0 w-64 bg-surface border-r border-border animate-in slide-in-from-left duration-250">
             <div className="flex items-center justify-between px-6 py-6">
               <div>
-                <Link
-                  href="/admin"
-                  className="text-2xl font-bold text-primary tracking-tight"
-                >
-                  macwav
-                </Link>
+                <Logo href="/admin" className="w-[170px] max-w-full" />
                 <p className="text-xs text-muted-foreground mt-1 uppercase tracking-wider font-semibold">
                   Admin Panel
                 </p>
