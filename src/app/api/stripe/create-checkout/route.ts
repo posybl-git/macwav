@@ -5,7 +5,11 @@ import { getCreditBundleByCredits, getStripePriceIdByCredits } from "@/lib/credi
 
 export const runtime = "nodejs";
 
-const stripeSecretKey = process.env.STRIPE_SECRET_KEY;
+function normalizeSecret(value: string | undefined) {
+  return value?.trim().replace(/^['"]|['"]$/g, "") ?? null;
+}
+
+const stripeSecretKey = normalizeSecret(process.env.STRIPE_SECRET_KEY);
 
 export async function POST(request: Request) {
   try {
@@ -84,7 +88,12 @@ export async function POST(request: Request) {
 
     return NextResponse.json({ url: session.url });
   } catch (error) {
-    const message = error instanceof Error ? error.message : "Unable to start checkout.";
+    const message =
+      error instanceof Error && error.message.includes("Invalid API Key")
+        ? "Stripe secret key is invalid or still has extra characters. Check the Vercel STRIPE_SECRET_KEY value."
+        : error instanceof Error
+        ? error.message
+        : "Unable to start checkout.";
     return NextResponse.json({ error: message }, { status: 500 });
   }
 }
