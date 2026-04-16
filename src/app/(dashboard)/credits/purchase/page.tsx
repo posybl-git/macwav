@@ -24,7 +24,16 @@ export default function CreditsPurchasePage() {
         body: JSON.stringify({ creditAmount }),
       });
 
-      const data = await response.json();
+      const responseText = await response.text();
+      let data: { error?: string; url?: string } = {};
+
+      if (responseText) {
+        try {
+          data = JSON.parse(responseText) as { error?: string; url?: string };
+        } catch {
+          data = {};
+        }
+      }
 
       if (!response.ok) {
         throw new Error(data.error || "Unable to start checkout.");
