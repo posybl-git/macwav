@@ -4,8 +4,12 @@ import { createAdminClient } from "@/lib/supabase/admin";
 
 export const runtime = "nodejs";
 
-const stripeSecretKey = process.env.STRIPE_SECRET_KEY;
-const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
+function normalizeSecret(value: string | undefined) {
+  return value?.trim().replace(/^['"]|['"]$/g, "") ?? null;
+}
+
+const stripeSecretKey = normalizeSecret(process.env.STRIPE_SECRET_KEY);
+const webhookSecret = normalizeSecret(process.env.STRIPE_WEBHOOK_SECRET);
 
 export async function POST(request: Request) {
   if (!stripeSecretKey || !webhookSecret) {

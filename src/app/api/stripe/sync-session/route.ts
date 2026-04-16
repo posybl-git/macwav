@@ -5,7 +5,11 @@ import { createClient } from "@/lib/supabase/server";
 
 export const runtime = "nodejs";
 
-const stripeSecretKey = process.env.STRIPE_SECRET_KEY;
+function normalizeSecret(value: string | undefined) {
+  return value?.trim().replace(/^['"]|['"]$/g, "") ?? null;
+}
+
+const stripeSecretKey = normalizeSecret(process.env.STRIPE_SECRET_KEY);
 
 type SyncRequestBody = {
   sessionId?: string;
