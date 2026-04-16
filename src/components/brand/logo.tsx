@@ -12,7 +12,7 @@ export function Logo({
 }: LogoProps) {
   const content = (
     <img
-      src="/brand/macwav-logo.svg"
+      src="/brand/Real_logo.png"
       alt="macwav logo"
       className={cn("block h-auto w-full object-contain", className)}
       loading="eager"
