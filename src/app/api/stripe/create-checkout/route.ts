@@ -1,7 +1,7 @@
 import Stripe from "stripe";
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
-import { getCreditBundleByCredits } from "@/lib/credits";
+import { getCreditBundleByCredits, getStripePriceIdByCredits } from "@/lib/credits";
 
 const stripeSecretKey = process.env.STRIPE_SECRET_KEY;
 
@@ -31,9 +31,17 @@ export async function POST(request: Request) {
 
   const creditAmount = Number(body.creditAmount);
   const bundle = getCreditBundleByCredits(creditAmount);
+  const stripePriceId = getStripePriceIdByCredits(creditAmount);
 
   if (!bundle) {
     return NextResponse.json({ error: "Invalid credit bundle" }, { status: 400 });
+  }
+
+  if (!stripePriceId) {
+    return NextResponse.json(
+      { error: "Missing Stripe price id for selected bundle" },
+      { status: 500 }
+    );
   }
 
   const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? new URL(request.url).origin;
@@ -53,14 +61,7 @@ export async function POST(request: Request) {
     line_items: [
       {
         quantity: 1,
-        price_data: {
-          currency: "usd",
-          unit_amount: bundle.priceInCents,
-          product_data: {
-            name: `${bundle.credits.toLocaleString()} Credits`,
-            description: `macwav credit bundle`,
-          },
-        },
+        price: stripePriceId,
       },
     ],
   });
