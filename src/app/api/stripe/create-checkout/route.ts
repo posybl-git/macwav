@@ -46,7 +46,7 @@ export async function POST(request: Request) {
 
   const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? new URL(request.url).origin;
   const stripe = new Stripe(stripeSecretKey, {
-    apiVersion: "2025-02-24.acacia",
+    apiVersion: "2026-03-25.dahlia",
   });
 
   const session = await stripe.checkout.sessions.create({

@@ -16,7 +16,7 @@ export async function POST(request: Request) {
   }
 
   const stripe = new Stripe(stripeSecretKey, {
-    apiVersion: "2025-02-24.acacia",
+    apiVersion: "2026-03-25.dahlia",
   });
 
   const payload = await request.text();
@@ -69,12 +69,15 @@ export async function POST(request: Request) {
     return NextResponse.json({ received: true });
   }
 
-  const { data: balance, error } = await admin.rpc("record_credit_purchase", {
+  const { data: balance, error } = await (admin as any).rpc(
+    "record_credit_purchase",
+    {
     p_user_id: userId,
     p_amount: creditAmount,
     p_stripe_payment_id: paymentId,
     p_description: description,
-  });
+    }
+  );
 
   if (error) {
     return NextResponse.json({ error: error.message }, { status: 500 });
