@@ -50,9 +50,13 @@ export async function updateSession(request: NextRequest) {
   }
 
   const path = request.nextUrl.pathname
+  const isPasswordRecoveryRoute =
+    path === '/auth/callback' ||
+    path === '/auth/reset-password' ||
+    path === '/auth/auth-code-error'
 
   // Define route groups
-  const isAuthRoute = path === '/' || path.startsWith('/auth')
+  const isAuthRoute = (path === '/' || path.startsWith('/auth')) && !isPasswordRecoveryRoute
   const isAdminRoute = path.startsWith('/admin')
   const isProtectedRoute =
     path.startsWith('/dashboard') ||
