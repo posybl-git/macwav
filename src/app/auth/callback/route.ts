@@ -7,8 +7,9 @@ export async function GET(request: Request) {
   const code = searchParams.get('code')
   const tokenHash = searchParams.get('token_hash')
   const type = searchParams.get('type')
-  const next = searchParams.get('next') ?? '/dashboard'
   const flow = searchParams.get('flow')
+  const isPasswordResetFlow = flow === 'password-reset' || type === 'recovery'
+  const next = searchParams.get('next') ?? (isPasswordResetFlow ? '/auth/reset-password' : '/dashboard')
   const isSignupConfirmationFlow = flow === 'signup-confirmation' || type === 'signup'
   const supabase = await createClient()
 
